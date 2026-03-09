@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  REQUIREMENT_COLLECTED
+  PROPERTY_SUGGESTED
+  VISIT_SCHEDULED
+  VISIT_COMPLETED
+  BOOKED
+  LOST
+
+  @@map("lead_status")
+}
+
+enum VisitStatus {
+  scheduled
+  completed
+  cancelled
+
+  @@map("visit_status")
+}
+
+model Agent {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  leads     Lead[]
+
+  @@map("agents")
+}
+
+model Lead {
+  id              String     @id @default(uuid()) @db.Uuid
+  name            String
+  phone           String
+  source          String
+  status          LeadStatus @default(NEW)
+  assignedAgentId String?    @db.Uuid @map("assigned_agent_id")
+  agent           Agent?     @relation(fields: [assignedAgentId], references: [id])
+  lastActivityAt  DateTime   @default(now()) @map("last_activity_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  visits          Visit[]
+
+  @@index([assignedAgentId])
+  @@index([status])
+  @@map("leads")
+}
+
+model Visit {
+  id           String      @id @default(uuid()) @db.Uuid
+  leadId       String      @db.Uuid @map("lead_id")
+  lead         Lead        @relation(fields: [leadId], references: [id])
+  propertyName String      @map("property_name")
+  visitDate    DateTime    @db.Date @map("visit_date")
+  visitTime    String      @map("visit_time")
+  visitStatus  VisitStatus @default(scheduled) @map("visit_status")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  @@index([leadId])
+  @@map("visits")
+}
